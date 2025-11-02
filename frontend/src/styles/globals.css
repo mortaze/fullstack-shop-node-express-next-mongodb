@@ -1,0 +1,47 @@
+
+@import "tailwindcss";
+@font-face {
+  font-family: "Vazir";
+  src: url("/fonts/Vazir.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #fffff;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Vazir;
+}
+
+.newsletter-description {
+  color: #243241;
+}
+/* فقط به اسلایدر محصول بوردر بده */
+.product-swiper .swiper-slide-active img {
+  border: 2px solid rgb(255, 132, 0); /* طوسی */
+  border-radius: 0.75rem; /* مثل rounded-xl */
+}
+@media (max-width: 640px) {
+  .custom-pagination {
+    display: none !important;
+  }
+}
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
