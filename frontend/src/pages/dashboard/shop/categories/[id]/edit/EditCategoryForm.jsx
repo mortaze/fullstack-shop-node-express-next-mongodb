@@ -1,227 +1,421 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { FaTrash, FaSave, FaImage } from "react-icons/fa";
-import DashboardLayout from "../../../../layout";
+import { useRouter } from "next/router"; // استفاده از useRouter Next/router برای Pages Router
+import { FaTrash, FaSave, FaImage, FaTimes } from "react-icons/fa";
+import DashboardLayout from "../../../../layout"; 
+import { 
+  useGetShowCategoryQuery, 
+  useGetCategoryByIdQuery,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
+} from "../../../../../../redux/features/categoryApi"; // مسیردهی صحیح به RTK Query
 
-export default function EditCategoryPage({ params }) {
-  const categoryId = params?.id;
+// تعریف ساختار اولیه State
+const initialCategoryState = {
+  parent: "",
+  parentId: "",
+  children: [],
+  productType: "general",
+  status: "Show",
+  img: null,
+};
 
-  // States
-  const [category, setCategory] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+// **خطا رفع شد: دریافت پروپ با نام صحیح categoryId**
+export default function EditCategoryForm({ categoryId }) { 
+  const router = useRouter();
+
+  // State
+  const [categoryData, setCategoryData] = useState(initialCategoryState);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [statusMessage, setStatusMessage] = useState({ type: null, text: "" });
   const fileInputRef = useRef(null);
 
-  // const fetchData = async () => {
-  //   try {
-  //     setLoading(true);
+  // RTK Query Hooks
+ 
 
-  //     const [allRes, catRes] = await Promise.all([
-  //       fetch(`${process.env.NEXT_PUBLIC_API_URL}/category/show`),
-  //       fetch(`${process.env.NEXT_PUBLIC_API_URL}/category/get/${categoryId}`),
-  //     ]);
+  const { 
+    data: initialCategory, 
+    isLoading: isCategoryLoading, 
+    isError: isCategoryError, 
+    error: categoryError 
+  } = useGetCategoryByIdQuery(categoryId, { skip: !categoryId });
 
-  //     const allData = await allRes.json();
-  //     const catData = await catRes.json();
+ const categoryDataFromAPI = initialCategory || null;
 
-  //     setCategories(allData.result || []);
-  //     setCategory(catData);
-  //   } catch (err) {
-  //     console.error("Error:", err);
-  //   } finally {
-  //     setLoading(false);
+  const { 
+    data: allCategoriesData, 
+    isLoading: isAllCategoriesLoading,
+  } = useGetShowCategoryQuery(undefined, { skip: !categoryId });
+  
+  const [updateCategory, { isLoading: isUpdating }] = useUpdateCategoryMutation();
+  const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
+
+  const allCategories = allCategoriesData?.result || allCategoriesData || [];
+
+  // --- EFFECT: Populate Form State on Initial Data Load ---
+  // useEffect(() => {
+  //   if (initialCategory) {
+  //     setCategoryData({
+  //       parent: initialCategory.parent || "",
+  //       parentId: initialCategory.parentId || "",
+  //       children: initialCategory.children || [],
+  //       productType: initialCategory.productType || "general",
+  //       status: initialCategory.status || "Show",
+  //       img: initialCategory.img || null, 
+  //     });
+  //     setImageFile(null);
+  //     setImagePreview(null);
   //   }
-  // };
-  useEffect(() => {
-    if (!categoryId) return;
+  // }, [initialCategory]);
 
-    const fetchCategory = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/category/get/${categoryId}`
-        );
-        const data = await res.json();
-        setCategory(data.result || data);
-      } catch (error) {
-        console.error("خطا:", error);
-      } finally {
-        setLoading(false);
+useEffect(() => {
+  if (categoryDataFromAPI) {
+    setCategoryData({
+      parent: categoryDataFromAPI.parent || "",
+      parentId: categoryDataFromAPI.parentId || "",
+      children: categoryDataFromAPI.children || [],
+      productType: categoryDataFromAPI.productType || "general",
+      status: categoryDataFromAPI.status || "Show",
+      img: categoryDataFromAPI.img || null,
+    });
+    setImageFile(null);
+    setImagePreview(null);
+  }
+}, [categoryDataFromAPI]);
+
+
+
+  
+
+  // --- EFFECT: Image URL Revocation (Memory Leak Fix) ---
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
       }
     };
+  }, [imagePreview]);
 
-    fetchCategory();
-  }, [categoryId]);
+  // --- Handlers ---
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCategoryData(prev => ({ ...prev, [name]: value }));
+  };
 
-  useEffect(() => {
-    const fetchCategory = async () => {
-      try {
-        console.log(
-          "Fetching:",
-          `${process.env.NEXT_PUBLIC_API_URL}/category/get/${categoryId}`
-        );
-
-        const catRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/category/get/${categoryId}`
-        );
-        console.log("Status:", catRes.status);
-
-        const catData = await catRes.json();
-        console.log("Response:", catData);
-
-        // اگر API دیتارو داخل result برگردوند
-        setCategory(catData.result || catData);
-      } catch (error) {
-        console.error("Fetch Error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategory();
-  }, [categoryId]);
-
-  // Image change
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   };
+  
+  const handleAddChild = (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      e.preventDefault();
+      const input = document.getElementById('child-input');
+      const childName = input?.value.trim();
 
+      if (childName && !categoryData.children.includes(childName)) {
+        setCategoryData(prev => ({ ...prev, children: [...prev.children, childName] }));
+        input.value = '';
+      }
+    }
+  };
+
+  const handleRemoveChild = (childToRemove) => {
+    setCategoryData(prev => ({
+      ...prev,
+      children: prev.children.filter(child => child !== childToRemove)
+    }));
+  };
+  
+  // --- SUBMISSION HANDLERS ---
   const submitHandler = async (e) => {
     e.preventDefault();
-    if (!category?.parent?.trim()) return alert("نام دسته را وارد کنید");
 
-    setIsSubmitting(true);
+    if (!categoryData.parent.trim()) {
+      setStatusMessage({ type: 'error', text: 'لطفاً نام دسته‌بندی را وارد کنید.' });
+      return;
+    }
 
+    setStatusMessage({ type: null, text: "" });
+    
     try {
-      const form = new FormData();
-      form.append("parent", category.parent);
-      form.append("parentId", category.parentId || "");
-      form.append("children", JSON.stringify(category.children || []));
-      if (imageFile) form.append("img", imageFile);
+     const formData = new FormData();
+    formData.append("parent", categoryData.parent);
+    formData.append("parentId", categoryData.parentId || "");
+    formData.append("children", JSON.stringify(categoryData.children));
+    formData.append("productType", categoryData.productType);
+    formData.append("status", categoryData.status);
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/category/edit/${categoryId}`,
-        { method: "PATCH", body: form }
-      );
-      const data = await res.json();
+    if (imageFile) {
+      formData.append("img", imageFile);
+    }
 
-      if (!res.ok) throw new Error(data.message);
-      alert("✅ دسته‌بندی با موفقیت ذخیره شد");
+      await updateCategory({ id: categoryId, formData }).unwrap();
+      
+      setStatusMessage({ type: 'success', text: '✅ دسته‌بندی با موفقیت به‌روزرسانی شد.' });
+
     } catch (err) {
-      alert("❌ خطا: " + err.message);
-    } finally {
-      setIsSubmitting(false);
+      console.error("Update Error:", err);
+      const errMsg = err?.data?.message || err?.message || "خطا در به‌روزرسانی دسته‌بندی رخ داد.";
+      setStatusMessage({ type: 'error', text: `❌ خطا: ${errMsg}` });
     }
   };
 
-  // delete
   const deleteHandler = async () => {
-    if (!confirm("آیا مطمئنید؟")) return;
+    const confirmation = window.confirm("آیا مطمئنید که می‌خواهید این دسته‌بندی را حذف کنید؟");
+    if (!confirmation) return;
 
+    setStatusMessage({ type: null, text: "" });
+    
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/category/delete/${categoryId}`,
-        { method: "DELETE" }
-      );
+      await deleteCategory(categoryId).unwrap();
+      setStatusMessage({ type: 'success', text: '✅ دسته‌بندی حذف شد. در حال انتقال...' });
+      
+      setTimeout(() => {
+        router.push("/dashboard/shop/categories"); // ناوبری Pages Router
+      }, 1500);
 
-      if (!res.ok) throw new Error("خطا در حذف");
-
-      alert("✅ دسته حذف شد");
-      window.location.href = "/dashboard/shop/categories";
     } catch (err) {
-      alert("❌ خطا: " + err.message);
+      console.error("Delete Error:", err);
+      const errMsg = err?.data?.message || err?.message || "خطا در حذف دسته‌بندی رخ داد.";
+      setStatusMessage({ type: 'error', text: `❌ خطا: ${errMsg}` });
     }
   };
-
-  if (loading) {
+  
+  // --- Loading and Error States ---
+  const isDataLoading = isCategoryLoading || isAllCategoriesLoading;
+  
+  if (!categoryId) {
     return (
       <DashboardLayout>
-        <p className="text-center text-gray-400">در حال بارگذاری...</p>
+        <p className="text-center p-8 text-red-400 font-bold">خطا: شناسه دسته‌بندی (ID) در آدرس یافت نشد.</p>
       </DashboardLayout>
     );
   }
 
+  if (isDataLoading) {
+    return (
+      <DashboardLayout>
+        <p className="text-center text-gray-400 p-8">در حال بارگذاری اطلاعات دسته‌بندی...</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (isCategoryError || !initialCategory) {
+    const errorMsg = categoryError?.data?.message || "دسته مورد نظر یافت نشد.";
+    return (
+      <DashboardLayout>
+        <div className="text-center p-8 bg-gray-800 rounded-xl max-w-xl mx-auto mt-10 text-white">
+          <p className="text-red-400 font-bold">خطا در بارگذاری داده: {errorMsg}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Final Render
   return (
     <DashboardLayout>
-      <div className="max-w-xl mx-auto p-4">
-        <h1 className="text-xl font-bold text-white text-center mb-6">
-          ویرایش دسته
+      <div className="max-w-2xl mx-auto p-4 md:p-8">
+        <h1 className="text-2xl font-extrabold text-white text-center mb-8 border-b-2 border-gray-700 pb-4">
+          ویرایش دسته‌بندی: {categoryData.parent}
         </h1>
 
         <form
           onSubmit={submitHandler}
-          className="bg-gray-800 p-5 rounded-xl space-y-5"
+          className="bg-gray-800 p-6 sm:p-8 rounded-2xl space-y-6 shadow-2xl"
         >
-          <label className="text-white">نام دسته</label>
-          <input
-            className="input input-bordered w-full bg-gray-700 text-white p-3 rounded-xl"
-            value={category?.parent || ""}
-            onChange={(e) =>
-              setCategory({ ...category, parent: e.target.value })
-            }
-          />
-
-          <label className="text-white">انتخاب دسته مادر</label>
-          <select
-            className="w-full bg-gray-700 text-white p-3 rounded-xl"
-            value={category?.parentId || ""}
-            onChange={(e) =>
-              setCategory({ ...category, parentId: e.target.value })
-            }
-          >
-            <option value="">بدون دسته مادر</option>
-            {categories
-              .filter((c) => c._id !== categoryId)
-              .map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.parent}
-                </option>
-              ))}
-          </select>
-
-          <label className="text-white block">تصویر دسته</label>
-          <div
-            className="bg-gray-700 p-3 rounded-xl cursor-pointer"
-            onClick={() => fileInputRef.current.click()}
-          >
-            <FaImage className="inline mr-2" /> انتخاب تصویر
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageChange}
-            />
-          </div>
-
-          {(imagePreview || category?.img) && (
-            <img
-              src={imagePreview || category?.img}
-              className="w-full rounded-xl mt-3"
-            />
+          {/* Status Message Display */}
+          {statusMessage.text && (
+            <div 
+              className={`p-4 rounded-xl font-medium ${
+                statusMessage.type === 'success' ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'
+              }`}
+            >
+              {statusMessage.text}
+            </div>
           )}
 
-          <button
-            disabled={isSubmitting}
-            className="w-full bg-green-600 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2"
-          >
-            <FaSave /> ذخیره تغییرات
-          </button>
+          {/* 1. Parent Category Name */}
+          <div>
+            <label htmlFor="parent-name" className="text-gray-300 block mb-2 font-medium">نام دسته اصلی</label>
+            <input
+              id="parent-name"
+              name="parent"
+              className="input input-bordered w-full bg-gray-700 text-white p-3 rounded-xl border border-gray-600 focus:border-blue-500"
+              value={categoryData.parent}
+              onChange={handleChange}
+              placeholder="مثال: هدفون‌ها"
+            />
+          </div>
+          
+          {/* 2. Parent Category Selector */}
+          <div>
+            <label htmlFor="parent-id" className="text-gray-300 block mb-2 font-medium">انتخاب دسته مادر (اگر زیردسته است)</label>
+            <select
+              id="parent-id"
+              name="parentId"
+              className="w-full bg-gray-700 text-white p-3 rounded-xl border border-gray-600 focus:border-blue-500 appearance-none"
+              value={categoryData.parentId || ""}
+              onChange={handleChange}
+            >
+              <option value="">-- بدون دسته مادر (دسته اصلی) --</option>
+              {allCategories
+                .filter((c) => c._id !== categoryId) 
+                .map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.parent}
+                  </option>
+                ))}
+            </select>
+            {isAllCategoriesLoading && <p className="text-gray-500 text-sm mt-1">در حال بارگذاری لیست دسته‌ها...</p>}
+          </div>
+          
+          {/* 3. Product Type and Status Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="product-type" className="text-gray-300 block mb-2 font-medium">نوع محصول (Product Type)</label>
+              <select
+                id="product-type"
+                name="productType"
+                className="w-full bg-gray-700 text-white p-3 rounded-xl border border-gray-600 focus:border-blue-500 appearance-none"
+                value={categoryData.productType}
+                onChange={handleChange}
+              >
+                <option value="general">عمومی</option>
+                <option value="electronics">الکترونیک</option>
+                <option value="fashion">مد و پوشاک</option>
+                <option value="home">خانه و آشپزخانه</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="status" className="text-gray-300 block mb-2 font-medium">وضعیت (Status)</label>
+              <select
+                id="status"
+                name="status"
+                className="w-full bg-gray-700 text-white p-3 rounded-xl border border-gray-600 focus:border-blue-500 appearance-none"
+                value={categoryData.status}
+                onChange={handleChange}
+              >
+                <option value="Show">نمایش</option>
+                <option value="Hide">پنهان</option>
+              </select>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={deleteHandler}
-            className="w-full bg-red-600 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2"
-          >
-            <FaTrash /> حذف دسته
-          </button>
+          {/* 4. Children (Sub-categories/Tags) Editor */}
+          <div>
+            <label htmlFor="child-input" className="text-gray-300 block mb-2 font-medium">زیردسته‌ها (Children)</label>
+            <div className="flex gap-2 mb-3">
+              <input
+                id="child-input"
+                type="text"
+                className="input input-bordered w-full bg-gray-700 text-white p-3 rounded-xl border border-gray-600 focus:border-blue-500"
+                placeholder="نام زیردسته جدید (Enter)"
+                onKeyDown={handleAddChild}
+              />
+              <button type="button" onClick={handleAddChild} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition duration-150 shrink-0">
+                افزودن
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2 p-2 bg-gray-700 rounded-xl min-h-[40px]">
+              {categoryData.children.length === 0 ? (
+                <p className="text-gray-400 text-sm">هیچ زیردسته‌ای اضافه نشده است.</p>
+              ) : (
+                categoryData.children.map((child, index) => (
+                  <span 
+                    key={index} 
+                    className="bg-gray-600 text-white text-sm px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer hover:bg-red-500 transition duration-150"
+                    onClick={() => handleRemoveChild(child)}
+                  >
+                    {child}
+                    <FaTimes className="text-xs" />
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+
+
+          {/* 5. Image Upload */}
+          <div className="pt-2">
+            <label className="text-gray-300 block mb-2 font-medium">تصویر دسته</label>
+            <div
+              className="bg-gray-700 p-4 rounded-xl cursor-pointer hover:bg-gray-600 transition duration-150 text-white flex items-center justify-center gap-2 border border-gray-600"
+              onClick={() => fileInputRef.current.click()}
+            >
+              <FaImage className="w-5 h-5" /> 
+              <span> {imageFile ? `فایل انتخاب شده: ${imageFile.name}` : "برای انتخاب تصویر کلیک کنید"}</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
+            </div>
+
+            {(imagePreview || categoryData.img) && (
+              <div className="mt-4 relative">
+                <p className="text-gray-400 mb-2 text-sm">تصویر فعلی / پیش‌نمایش</p>
+                <img
+                  src={imagePreview || categoryData.img}
+                  alt="Category Preview"
+                  className="w-full max-h-60 object-contain rounded-xl border border-gray-700"
+                />
+              </div>
+            )}
+            {!categoryData.img && !imagePreview && (
+                <p className="text-gray-500 text-xs mt-2">تصویری برای این دسته ثبت نشده است.</p>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="pt-4 space-y-4">
+            <button
+              type="submit"
+              disabled={isUpdating || isDeleting}
+              className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-3 transition duration-150 disabled:bg-gray-600"
+            >
+              {isUpdating ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  در حال ذخیره...
+                </>
+              ) : (
+                <>
+                  <FaSave /> ذخیره تغییرات
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={deleteHandler}
+              disabled={isUpdating || isDeleting}
+              className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-3 transition duration-150 disabled:bg-gray-600"
+            >
+              {isDeleting ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  در حال حذف...
+                </>
+              ) : (
+                <>
+                  <FaTrash /> حذف دسته
+                </>
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </DashboardLayout>

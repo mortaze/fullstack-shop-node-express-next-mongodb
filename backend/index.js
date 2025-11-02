@@ -75,10 +75,10 @@ const morgan = require("morgan");
 const connectDB = require("./config/db");
 const { secret } = require("./config/secret");
 
-// error handler
+// --- Error Handler ---
 const globalErrorHandler = require("./middleware/global-error-handler");
 
-// routes
+// --- Routes ---
 const userRoutes = require("./routes/user.routes");
 const categoryRoutes = require("./routes/category.routes");
 const brandRoutes = require("./routes/brand.routes");
@@ -88,7 +88,7 @@ const orderRoutes = require("./routes/order.routes");
 const couponRoutes = require("./routes/coupon.routes");
 const reviewRoutes = require("./routes/review.routes");
 const adminRoutes = require("./routes/admin.routes");
-// const uploadRouter = require('./routes/uploadFile.route');
+const uploadRouter = require('./routes/uploadFile.route');
 const cloudinaryRoutes = require("./routes/cloudinary.routes");
 
 const app = express();
@@ -100,15 +100,16 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// --- Connect Database ---
-connectDB();
+// --- Connect to Database ---
+connectDB().then(() => console.log("MongoDB connected"))
+          .catch(err => console.error("MongoDB connection error:", err));
 
-// --- Routes ---
+// --- API Routes ---
 app.use("/api/user", userRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/product", productRoutes);
-// app.use('/api/upload', uploadRouter);
+app.use("/api/upload", uploadRouter);
 app.use("/api/order", orderRoutes);
 app.use("/api/coupon", couponRoutes);
 app.use("/api/user-order", userOrderRoutes);
@@ -117,7 +118,7 @@ app.use("/api/cloudinary", cloudinaryRoutes);
 app.use("/api/admin", adminRoutes);
 
 // --- Root Route ---
-app.get("/", (req, res) => res.send("Apps worked successfully"));
+app.get("/", (req, res) => res.send("Server is running successfully"));
 
 // --- Global Error Handler ---
 app.use(globalErrorHandler);

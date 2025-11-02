@@ -40,18 +40,15 @@ exports.deleteCategoryService = async (id) => {
 }
 
 // update category
-exports.updateCategoryService = async (id,payload) => {
-  const isExist = await Category.findOne({ _id:id })
-
+exports.updateCategoryService = async (id, payload) => {
+  const isExist = await Category.findById(id);
   if (!isExist) {
-    throw new ApiError(404, 'Category not found !')
+    throw new ApiError(404, 'Category not found !');
   }
 
-  const result = await Category.findOneAndUpdate({ _id:id }, payload, {
-    new: true,
-  })
-  return result
-}
+  const updated = await Category.findByIdAndUpdate(id, payload, { new: true });
+  return updated;
+};
 
 // get single category
 exports.getSingleCategoryService = async (id) => {

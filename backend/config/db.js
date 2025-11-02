@@ -1,22 +1,15 @@
-
-
-
-
-
 const mongoose = require('mongoose');
-const { secret } = require('./secret');
-
-mongoose.set('strictQuery', false);
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(secret.db_url, {
+    await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('mongodb connection success!');
+    console.log('MongoDB connected');
   } catch (err) {
-    console.error('mongodb connection failed!', err.message);
+    console.error('mongodb connection failed!', err);
+    process.exit(1);
   }
 };
 
