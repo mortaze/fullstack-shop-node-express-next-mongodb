@@ -83,13 +83,26 @@ export const categoryApi = apiSlice.injectEndpoints({
     }),
 
     // 5️⃣ ویرایش دسته‌بندی
-    updateCategory: builder.mutation({
-    query: ({ id, formData }) => ({
-        url: `${process.env.NEXT_PUBLIC_API_URL}/category/edit/${id}`,
-        method: "PATCH",
+
+updateCategory: builder.mutation({
+  async queryFn({ id, formData }, _queryApi, _extraOptions, fetchWithBQ) {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/category/edit/${id}`;
+      const res = await fetch(url, {
+        method: 'PATCH',
+        // نه هدر Content-Type بذار، بذار مرورگر خودش boundary بزنه:
         body: formData,
-    }),
-    invalidatesTags: [{ type: 'Category', id: 'LIST' }],
+        // credentials: 'include' // اگر auth/cookie لازمه، فعال کن
+      });
+
+      const data = await res.json();
+      if (!res.ok) return { error: data || { status: res.status, message: 'Update failed' } };
+      return { data };
+    } catch (err) {
+      return { error: { status: 'FETCH_ERROR', message: err.message } };
+    }
+  },
+  invalidatesTags: [{ type: 'Category', id: 'LIST' }],
 }),
 
     // 6️⃣ حذف دسته‌بندی

@@ -40,15 +40,30 @@ exports.deleteCategoryService = async (id) => {
 }
 
 // update category
-exports.updateCategoryService = async (id, payload) => {
-  const isExist = await Category.findById(id);
-  if (!isExist) {
-    throw new ApiError(404, 'Category not found !');
-  }
+// exports.updateCategoryService = async (id, payload) => {
+//   const isExist = await Category.findById(id);
+//   if (!isExist) {
+//     throw new ApiError(404, 'Category not found !');
+//   }
 
-  const updated = await Category.findByIdAndUpdate(id, payload, { new: true });
-  return updated;
+//   const updated = await Category.findByIdAndUpdate(id, payload, { new: true });
+//   return updated;
+// };
+
+exports.updateCategoryService = async (id, data) => {
+  try {
+    const updated = await Category.findByIdAndUpdate(id, data, {
+      new: true, // بعد از بروزرسانی مقدار جدید برگردد
+      runValidators: true, // اعتبارسنجی مدل اعمال شود
+    });
+    return updated;
+  } catch (error) {
+    console.error("❌ Error in updateCategoryService:", error);
+    throw error;
+  }
 };
+
+
 
 // get single category
 exports.getSingleCategoryService = async (id) => {

@@ -76,7 +76,7 @@ const menuItems = [
       {
         label: "همه محصولات",
         icon: <FaThList />,
-        href: "/dashboard/shop/products/all",
+        href: "/dashboard/shop/products",
       },
       {
         label: "دسته‌بندی‌ها",

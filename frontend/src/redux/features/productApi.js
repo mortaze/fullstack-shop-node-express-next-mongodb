@@ -1,39 +1,53 @@
 import { apiSlice } from "../api/apiSlice";
 
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/product`;
+
 export const productApi = apiSlice.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
+    // 📦 همه محصولات
     getAllProducts: builder.query({
-      query: () => `https://shofy-backend-dlt.vercel.app/api/product/all`,
-      providesTags:['Products']
+      query: () => `${BASE_URL}/all`,
+      query: () => `${BASE_URL}/show`,
+      providesTags: ['Products'],
     }),
+
+    // 📂 محصولات بر اساس نوع
     getProductType: builder.query({
-      query: ({ type, query }) => `https://shofy-backend-dlt.vercel.app/api/product/${type}?${query}`,
-      providesTags:['ProductType']
+      query: ({ type, query }) => `${BASE_URL}/${type}?${query}`,
+      providesTags: ['ProductType'],
     }),
+
+    // 💰 محصولات دارای تخفیف
     getOfferProducts: builder.query({
-      query: (type) => `https://shofy-backend-dlt.vercel.app/api/product/offer?type=${type}`,
-      providesTags:['OfferProducts']
+      query: (type) => `${BASE_URL}/offer?type=${type}`,
+      providesTags: ['OfferProducts'],
     }),
+
+    // ⭐ محصولات محبوب بر اساس نوع
     getPopularProductByType: builder.query({
-      query: (type) => `https://shofy-backend-dlt.vercel.app/api/product/popular/${type}`,
-      providesTags:['PopularProducts']
+      query: (type) => `${BASE_URL}/popular/${type}`,
+      providesTags: ['PopularProducts'],
     }),
+
+    // 🏆 محصولات با بالاترین امتیاز
     getTopRatedProducts: builder.query({
-      query: () => `https://shofy-backend-dlt.vercel.app/api/product/top-rated`,
-      providesTags:['TopRatedProducts']
+      query: () => `${BASE_URL}/top-rated`,
+      providesTags: ['TopRatedProducts'],
     }),
-    // get single product
+
+    // 🔍 محصول تکی
     getProduct: builder.query({
-      query: (id) => `https://shofy-backend-dlt.vercel.app/api/product/single-product/${id}`,
+      query: (id) => `${BASE_URL}/single-product/${id}`,
       providesTags: (result, error, arg) => [{ type: "Product", id: arg }],
       invalidatesTags: (result, error, arg) => [
-        { type: "RelatedProducts", id:arg },
+        { type: "RelatedProducts", id: arg },
       ],
     }),
-    // get related products
+
+    // 🔗 محصولات مرتبط
     getRelatedProducts: builder.query({
-      query: (id) => `https://shofy-backend-dlt.vercel.app/api/product/related-product/${id}`,
+      query: (id) => `${BASE_URL}/related-product/${id}`,
       providesTags: (result, error, arg) => [
         { type: "RelatedProducts", id: arg },
       ],

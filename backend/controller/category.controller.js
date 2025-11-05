@@ -9,6 +9,7 @@ const {
   getSingleCategoryService,
 } = require("../services/category.service");
 
+const Category = require("../model/Category");
 
 // 🟢 Add a new category
 exports.addCategory = async (req, res, next) => {
@@ -98,34 +99,44 @@ exports.deleteCategory = async (req, res, next) => {
 
 
 // 🟡 Update a category (handles both text & image updates)
-exports.updateCategory = async (req, res, next) => {
+exports.updateCategory = async (req, res) => {
   try {
-    const { id } = req.params;
-    let payload = req.body;
+    console.log("--- updateCategory request ---");
+    console.log("req.body:", req.body);
+    console.log("req.file:", req.file);
 
-    // اگر تصویر جدید فرستاده شده بود
+    const { parent, parentId, children, productType, status } = req.body;
+
+    const updateData = {
+      parent,
+      parentId,
+      productType,
+      status,
+      children: children ? JSON.parse(children) : [],
+    };
+
     if (req.file) {
-      payload.img = req.file.path; // یا req.file.filename بسته به تنظیمات شما
+      // اگر فایلی ارسال شده
+      updateData.img = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }
 
-    const updatedCategory = await updateCategoryService(id, payload);
+    const updatedCategory = await Category.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
 
     if (!updatedCategory) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found",
-      });
+      return res.status(404).json({ success: false, message: "دسته مورد نظر یافت نشد." });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Category updated successfully",
-      result: updatedCategory,
-    });
+    res.json({ success: true, result: updatedCategory });
   } catch (error) {
-    next(error);
+    console.error("❌ updateCategory error:", error);
+    res.status(500).json({ success: false, message: "خطا در بروزرسانی دسته‌بندی" });
   }
 };
+
 
 
 // 🟢 Get single category by ID

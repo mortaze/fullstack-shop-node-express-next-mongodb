@@ -71,7 +71,7 @@ export default function EditCategoryForm({ categoryId }) {
   // }, [initialCategory]);
 
 useEffect(() => {
-  if (categoryDataFromAPI) {
+  if (categoryDataFromAPI && categoryDataFromAPI._id) {
     setCategoryData({
       parent: categoryDataFromAPI.parent || "",
       parentId: categoryDataFromAPI.parentId || "",
@@ -80,11 +80,10 @@ useEffect(() => {
       status: categoryDataFromAPI.status || "Show",
       img: categoryDataFromAPI.img || null,
     });
-    setImageFile(null);
     setImagePreview(null);
+    setImageFile(null);
   }
-}, [categoryDataFromAPI]);
-
+}, [categoryDataFromAPI?._id]); // 👈 فقط وقتی دسته جدید لود شد، مقداردهی کن
 
 
   
@@ -136,19 +135,19 @@ useEffect(() => {
     }));
   };
   
-  // --- SUBMISSION HANDLERS ---
-  const submitHandler = async (e) => {
-    e.preventDefault();
+// --- SUBMISSION HANDLER ---
+const submitHandler = async (e) => {
+  e.preventDefault();
 
-    if (!categoryData.parent.trim()) {
-      setStatusMessage({ type: 'error', text: 'لطفاً نام دسته‌بندی را وارد کنید.' });
-      return;
-    }
+  if (!categoryData.parent.trim()) {
+    setStatusMessage({ type: "error", text: "لطفاً نام دسته‌بندی را وارد کنید." });
+    return;
+  }
 
-    setStatusMessage({ type: null, text: "" });
-    
-    try {
-     const formData = new FormData();
+  setStatusMessage({ type: null, text: "" });
+
+  try {
+    const formData = new FormData();
     formData.append("parent", categoryData.parent);
     formData.append("parentId", categoryData.parentId || "");
     formData.append("children", JSON.stringify(categoryData.children));
@@ -159,16 +158,33 @@ useEffect(() => {
       formData.append("img", imageFile);
     }
 
-      await updateCategory({ id: categoryId, formData }).unwrap();
-      
-      setStatusMessage({ type: 'success', text: '✅ دسته‌بندی با موفقیت به‌روزرسانی شد.' });
-
-    } catch (err) {
-      console.error("Update Error:", err);
-      const errMsg = err?.data?.message || err?.message || "خطا در به‌روزرسانی دسته‌بندی رخ داد.";
-      setStatusMessage({ type: 'error', text: `❌ خطا: ${errMsg}` });
+    // فقط برای چک کردن محتوا:
+    const debugObj = {};
+    for (const pair of formData.entries()) {
+      debugObj[pair[0]] = pair[1];
     }
-  };
+    console.log("✅ FormData being sent:", debugObj);
+
+    // ارسال به سرور
+    const res = await fetch(`http://localhost:7000/api/category/edit/${categoryId}`, {
+      method: "PATCH",
+      body: formData, // ❗ هیچ هدر Content-Type اضافه نکن
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      setStatusMessage({ type: "success", text: "✅ دسته‌بندی با موفقیت به‌روزرسانی شد." });
+    } else {
+      setStatusMessage({ type: "error", text: `❌ خطا: ${data.message || "خطا در به‌روزرسانی"}` });
+    }
+  } catch (err) {
+    console.error("Update Error:", err);
+    const errMsg = err?.data?.message || err?.message || "خطا در به‌روزرسانی دسته‌بندی رخ داد.";
+    setStatusMessage({ type: "error", text: `❌ خطا: ${errMsg}` });
+  }
+};
+
 
   const deleteHandler = async () => {
     const confirmation = window.confirm("آیا مطمئنید که می‌خواهید این دسته‌بندی را حذف کنید؟");
@@ -251,7 +267,7 @@ useEffect(() => {
               id="parent-name"
               name="parent"
               className="input input-bordered w-full bg-gray-700 text-white p-3 rounded-xl border border-gray-600 focus:border-blue-500"
-              value={categoryData.parent}
+              value={categoryData.parent || ""}
               onChange={handleChange}
               placeholder="مثال: هدفون‌ها"
             />
