@@ -421,7 +421,7 @@ export default function EditCategoryForm({ categoryId }) {
                 افزودن
               </button>
             </div>
-            <div className="flex flex-wrap gap-2 p-2 bg-gray-700 rounded-xl min-h-[40px]">
+            <div className="flex flex-wrap gap-2 p-2 bg-gray-700 rounded-xl min-h-10">
               {categoryData.children.length === 0 ? (
                 <p className="text-gray-400 text-sm">
                   هیچ زیردسته‌ای اضافه نشده است.
