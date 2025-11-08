@@ -41,7 +41,7 @@ export default function ProductDashboard() {
   const handleDelete = async (id, name) => {
     if (window.confirm(`آیا از حذف "${name}" مطمئن هستید؟`)) {
       try {
-        await axios.delete(`${API_URL}/product/delete/${id}`);
+       await axios.delete(`${API_URL}/product/${id}`);
         setProducts((prev) => prev.filter((p) => p._id !== id));
         alert("✅ محصول حذف شد.");
       } catch (err) {
@@ -114,16 +114,23 @@ export default function ProductDashboard() {
                   <td className="p-3">{product.price?.toLocaleString()} تومان</td>
                   <td className="p-3">{product.quantity}</td>
                   <td className="p-3 flex gap-3">
-                    <button className="bg-blue-600 px-3 py-1 rounded-md flex items-center gap-1 hover:bg-blue-700 transition">
-                      <FaEdit /> ویرایش
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product._id, product.title)}
-                      className="bg-red-600 px-3 py-1 rounded-md flex items-center gap-1 hover:bg-red-700 transition"
-                    >
-                      <FaTrash /> حذف
-                    </button>
-                  </td>
+  {/* دکمه ویرایش */}
+  <button
+    onClick={() => window.location.href = `/dashboard/shop/products/${product._id}/edit`}
+    className="bg-blue-600 px-3 py-1 rounded-md flex items-center gap-1 hover:bg-blue-700 transition"
+  >
+    <FaEdit /> ویرایش
+  </button>
+
+  {/* دکمه حذف */}
+  <button
+    onClick={() => handleDelete(product._id, product.title)}
+    className="bg-red-600 px-3 py-1 rounded-md flex items-center gap-1 hover:bg-red-700 transition"
+  >
+    <FaTrash /> حذف
+  </button>
+</td>
+
                 </tr>
               ))}
             </tbody>

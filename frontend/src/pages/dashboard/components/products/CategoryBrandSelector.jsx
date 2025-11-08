@@ -1,59 +1,73 @@
-'use client';
+"use client";
 
-import React, { useEffect } from 'react';
-import { FaStore, FaTags } from 'react-icons/fa';
+import React, { useEffect } from "react";
+import { FaStore, FaTags } from "react-icons/fa";
+import MetaBox from "../MetaBox";
 
-export default function CategoryBrandSelector({
-  product = {}, // ✅ مقدار پیش‌فرض برای جلوگیری از undefined
+export default function CategoryBrandBox({
+  product = {},
   setProduct = () => {},
   categories = [],
   brands = [],
   isLoading = false,
   error = null,
 }) {
-  // تغییرات فیلدهای select
+  // تغییر مقدار دسته‌بندی یا برند
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setProduct((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    if (name === "category") {
+      const selectedCategory = categories.find(
+        (cat) => (cat._id || cat.id) === value
+      );
+      setProduct((prev) => ({
+        ...prev,
+        category: selectedCategory
+          ? { id: selectedCategory._id || selectedCategory.id, name: selectedCategory.name || selectedCategory.parent }
+          : { id: "", name: "" },
+      }));
+    } else if (name === "brand") {
+      const selectedBrand = brands.find(
+        (b) => (b._id || b.id) === value
+      );
+      setProduct((prev) => ({
+        ...prev,
+        brand: selectedBrand
+          ? { id: selectedBrand._id || selectedBrand.id, name: selectedBrand.name }
+          : { id: "", name: "" },
+      }));
+    }
   };
 
-  // لاگ خطاها (در صورت وجود)
   useEffect(() => {
-    if (error) console.error('Error loading categories or brands:', error);
+    if (error) console.error("Error loading categories or brands:", error);
   }, [error]);
 
   return (
-    <div
-      dir="rtl"
-      className="bg-[#2d3748] border border-gray-700/50 rounded-2xl shadow-lg p-5 mb-6"
-    >
-      <h3 className="text-white text-lg font-semibold flex items-center gap-2 mb-4">
-        <FaStore className="text-indigo-400" />
-        دسته‌بندی و برند
-      </h3>
-
+    <MetaBox title="دسته‌بندی و برند محصول" defaultOpen={true}>
       {isLoading ? (
         <p className="text-gray-400 text-sm">در حال بارگذاری اطلاعات...</p>
       ) : (
-        <>
+        <div dir="rtl" className="space-y-5">
           {/* دسته‌بندی */}
-          <div className="mb-4">
-            <label className="block mb-2 text-gray-300 font-medium flex items-center gap-2">
+          <div>
+            <label className=" mb-2 text-gray-300 font-medium flex items-center gap-2">
               <FaTags className="text-gray-400" /> دسته‌بندی
             </label>
             <select
               name="category"
-              value={product?.category || ''}
+              value={product?.category?.id || ""}
               onChange={handleChange}
               className="w-full p-2 bg-[#1e2939] border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
             >
-              <option value="">یک دسته‌بندی انتخاب کنید</option>
+              <option value="" className="text-gray-200">یک دسته‌بندی انتخاب کنید</option>
               {categories.map((cat) => (
-                <option key={cat._id || cat.id} value={cat._id || cat.id}>
-                  {cat.name}
+                <option
+                  key={cat._id || cat.id}
+                  value={cat._id || cat.id}
+                  className="text-gray-200"
+                >
+                  {cat.name || cat.parent}
                 </option>
               ))}
             </select>
@@ -66,7 +80,7 @@ export default function CategoryBrandSelector({
             </label>
             <select
               name="brand"
-              value={product?.brand || ''}
+              value={product?.brand?.id || ""}
               onChange={handleChange}
               className="w-full p-2 bg-[#1e2939] border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
             >
@@ -78,8 +92,8 @@ export default function CategoryBrandSelector({
               ))}
             </select>
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </MetaBox>
   );
 }

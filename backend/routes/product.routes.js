@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 // internal
 const productController = require('../controller/product.controller');
+const Product = require("../model/Products");
 
 // add a product
 router.post('/add', productController.addProduct);
@@ -24,7 +25,16 @@ router.get("/single-product/:id", productController.getSingleProduct);
 // stock Product
 router.get("/stock-out", productController.stockOutProducts);
 // get Single Product
-router.patch("/edit-product/:id", productController.updateProduct);
+router.patch("/edit-product/:id", async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, product });
+  } catch (err) {
+    console.error("Edit Product Error:", err);
+    res.status(500).json({ success: false, message: "خطا در ویرایش محصول", error: err.message });
+  }
+});
+
 // get Products ByType
 router.get('/:type', productController.getProductsByType);
 // get Products ByType 
