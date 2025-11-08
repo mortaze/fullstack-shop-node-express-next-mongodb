@@ -2,14 +2,14 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/router";
-import { useCreateBrandMutation } from "../../../../.././redux/features/brandApi";
+import { useAddBrandMutation } from "../../../../.././redux/features/brandApi";
 import { FaSave, FaArrowLeft } from "react-icons/fa";
 import Link from "next/link";
 import DashboardLayout from "../../../layout";
 
 export default function CreateBrandPage() {
   const router = useRouter();
-  const [createBrand] = useCreateBrandMutation();
+  const [addBrand] = useAddBrandMutation(); // ← اصلاح شد
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,7 +29,7 @@ export default function CreateBrandPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createBrand(formData).unwrap();
+      await addBrand(formData).unwrap(); // ← اصلاح شد
       alert("✅ برند با موفقیت ایجاد شد");
       router.push("/dashboard/shop/brands");
     } catch (err) {
@@ -41,7 +41,6 @@ export default function CreateBrandPage() {
   return (
     <DashboardLayout>
       <div className="p-5 md:p-8 max-w-3xl mx-auto">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
           <Link href="/dashboard/shop/brands" className="text-blue-600 hover:underline flex items-center gap-2">
             <FaArrowLeft /> بازگشت به برندها
@@ -49,7 +48,6 @@ export default function CreateBrandPage() {
           <h2 className="text-2xl font-bold text-gray-800">ایجاد برند جدید</h2>
         </div>
 
-        {/* Form */}
         <form
           onSubmit={handleSubmit}
           className="space-y-5 bg-white p-6 rounded-xl shadow-md"
@@ -141,7 +139,6 @@ export default function CreateBrandPage() {
             />
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-all"
