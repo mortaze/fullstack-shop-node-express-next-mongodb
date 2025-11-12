@@ -90,7 +90,7 @@ const reviewRoutes = require("./routes/review.routes");
 const adminRoutes = require("./routes/admin.routes");
 const uploadRouter = require('./routes/uploadFile.route');
 const cloudinaryRoutes = require("./routes/cloudinary.routes");
-
+const blogRoutes = require('./routes/blog.routes');
 const app = express();
 const PORT = secret.port || 7000;
 
@@ -118,7 +118,7 @@ app.use("/api/user-order", userOrderRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/cloudinary", cloudinaryRoutes);
 app.use("/api/admin", adminRoutes);
-
+app.use('/api/blog', blogRoutes);
 // --- Root Route ---
 app.get("/", (req, res) => res.send("Server is running successfully"));
 

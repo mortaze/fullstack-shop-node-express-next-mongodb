@@ -1,5 +1,4 @@
 require('dotenv').config();
-
 const connectDB = require('./config/db');
 
 const Brand = require('./model/Brand');
@@ -26,7 +25,12 @@ const reviewsData = require('./utils/reviews');
 const Admin = require('./model/Admin');
 const adminData = require('./utils/admin');
 
+// اضافه کردن وبلاگ
+const Blog = require('./model/blog');
+const blogData = require('./utils/blogs');
+
 connectDB();
+
 const importData = async () => {
   try {
     await Brand.deleteMany();
@@ -53,10 +57,14 @@ const importData = async () => {
     await Admin.deleteMany();
     await Admin.insertMany(adminData);
 
-    console.log('data inserted successfully!');
+    // وبلاگ
+    await Blog.deleteMany();
+    await Blog.insertMany(blogData);
+
+    console.log('Data inserted successfully!');
     process.exit();
   } catch (error) {
-    console.log('error', error);
+    console.log('Error:', error);
     process.exit(1);
   }
 };

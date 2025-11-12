@@ -111,9 +111,8 @@ const AddProductDashboard = () => {
 };
 
 
-      console.log('Payload قبل از ارسال: ', payload);
 
-      const response = await fetch('http://localhost:7000/api/product/add', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
