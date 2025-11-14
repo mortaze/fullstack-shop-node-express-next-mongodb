@@ -24,6 +24,7 @@ const adminRoutes = require("./routes/admin.routes");
 const uploadRouter = require('./routes/uploadFile.route');
 const cloudinaryRoutes = require("./routes/cloudinary.routes");
 const blogRoutes = require('./routes/blog.routes');
+const blogCategoryRoutes = require("./routes/blogCategory.route");
 const app = express();
 const PORT = secret.port || 7000;
 
@@ -52,6 +53,7 @@ app.use("/api/review", reviewRoutes);
 app.use("/api/cloudinary", cloudinaryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use('/api/blog', blogRoutes);
+app.use("/api/blog-category", blogCategoryRoutes);
 // --- Root Route ---
 app.get("/", (req, res) => res.send("Server is running successfully"));
 

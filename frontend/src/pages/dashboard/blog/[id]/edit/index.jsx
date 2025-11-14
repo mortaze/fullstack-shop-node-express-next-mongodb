@@ -13,15 +13,12 @@ import SlugInput from "../../components/SlugInput";
 import ExcerptInput from "../../components/ExcerptInput";
 import EditorSection from "../../components/EditorSection";
 import PublishSection from "../../components/PublishSection";
-import CategorySelect from "../../components/CategorySelect";
+import BlogCategoryBox from "../../components/CategorySelect"; // ✅ نسخه هماهنگ
 import TagsSection from "../../components/TagsSection";
 import CoverImageUpload from "../../components/CoverImageUpload";
 import DashboardLayout from "../../../layout";
 
-import {
-  useGetAllCategoriesQuery,
-  useGetAllTagsQuery,
-} from "../../../../../redux/features/blogApi";
+import { useGetAllTagsQuery } from "../../../../../redux/features/blogApi";
 
 // تولید اسلاگ فارسی‌ساز
 function generateSlug(text) {
@@ -38,17 +35,15 @@ export default function EditBlogPage() {
   const router = useRouter();
   const { id } = router.query;
 
-  const { data: categoriesData } = useGetAllCategoriesQuery();
   const { data: tagsData } = useGetAllTagsQuery();
-
-  const categories = categoriesData?.data || [];
   const allTags = tagsData?.data || [];
 
+  const [categories, setCategories] = useState([]); // دسته‌بندی‌ها از سرور
   const [form, setForm] = useState({
     title: "",
     slug: "",
     excerpt: "",
-    categoryId: "",
+    category: { id: "", name: "" }, // ✅ ساختار هماهنگ با BlogCategoryBox
     status: "draft",
     scheduledAt: "",
     tags: [],
@@ -58,8 +53,6 @@ export default function EditBlogPage() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const fileInputRef = useRef(null);
   const coverImageInputRef = useRef(null);
 
@@ -74,25 +67,28 @@ export default function EditBlogPage() {
     },
   });
 
-  // واکشی مقاله برای ویرایش
+  // واکشی دسته‌بندی‌ها و مقاله
   useEffect(() => {
     if (!id || !editor) return;
 
-    const fetchBlog = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/blog/get/${id}`
-        );
-        const data = res.data?.data || res.data;
+        // دسته‌بندی‌ها
+        const catRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/blog-category/show`);
+        setCategories(catRes.data?.data || []);
 
-        console.log("✅ دریافت مقاله:", data);
+        // مقاله
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/blog/get/${id}`);
+        const data = res.data?.data || res.data;
 
         setForm({
           title: data.title || "",
           slug: data.slug || "",
           excerpt: data.excerpt || "",
-          categoryId: data.category?._id || "",
+          category: data.category
+            ? { id: data.category._id, name: data.category.name }
+            : { id: "", name: "" },
           status: data.status || "draft",
           scheduledAt: data.scheduledAt ? data.scheduledAt.slice(0, 16) : "",
           tags: Array.isArray(data.tags)
@@ -105,53 +101,45 @@ export default function EditBlogPage() {
 
         editor.commands.setContent(data.content || "<p></p>");
       } catch (err) {
-        console.error("❌ خطا در واکشی مقاله:", err.response?.data || err);
-        alert("خطا در دریافت اطلاعات مقاله");
+        console.error("❌ خطا در واکشی داده‌ها:", err);
+        alert("خطا در دریافت اطلاعات مقاله یا دسته‌بندی‌ها");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchBlog();
+    fetchData();
   }, [id, editor]);
 
-  // ذخیره تغییرات (ویرایش مقاله)
-  // ذخیره تغییرات
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!editor) return;
+  // ذخیره تغییرات مقاله
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!editor) return;
 
-  const payload = { ...form, content: editor.getHTML() };
-
-  // حذف مقادیر خالی از payload
-  Object.keys(payload).forEach((key) => {
-    if (payload[key] === "" || payload[key] === null) {
-      delete payload[key];
+    if (!form.category.id) {
+      alert("دسته‌بندی مقاله الزامی است!");
+      return;
     }
-  });
 
-  console.log("📦 Payload نهایی برای ارسال:", payload);
+    const payload = {
+      ...form,
+      content: editor.getHTML(),
+      category: form.category.id, // فقط ID ارسال شود
+    };
 
-  try {
-    const res = await axios.patch(
-      `${process.env.NEXT_PUBLIC_API_URL}/blog/update/${id}`,
-      payload
-    );
-
-    console.log("✅ پاسخ سرور:", res.data);
-
-    if (res.status === 200 || res.data.success) {
-      alert("✅ مقاله با موفقیت ویرایش شد!");
-      router.push("/dashboard/blog");
-    } else {
-      alert(res.data.message || "خطا در ویرایش مقاله");
+    try {
+      const res = await axios.patch(`${process.env.NEXT_PUBLIC_API_URL}/blog/update/${id}`, payload);
+      if (res.status === 200 || res.data.success) {
+        alert("✅ مقاله با موفقیت ویرایش شد!");
+        router.push("/dashboard/blog");
+      } else {
+        alert(res.data.message || "خطا در ویرایش مقاله");
+      }
+    } catch (err) {
+      console.error("❌ خطا در آپدیت مقاله:", err.response?.data || err);
+      alert("❌ خطا در ارتباط با سرور یا داده‌های ارسالی");
     }
-  } catch (err) {
-    console.error("❌ خطا در آپدیت مقاله:", err.response?.data || err);
-    alert("❌ خطا در ارتباط با سرور یا داده‌های ارسالی");
-  }
-};
-
+  };
 
   // آپلود تصویر کاور
   const handleCoverImageFileChange = async (e) => {
@@ -167,7 +155,6 @@ const handleSubmit = async (e) => {
         body: formData,
       });
       const data = await res.json();
-      console.log("🖼️ آپلود کاور:", data);
       setForm((prev) => ({ ...prev, coverImage: data.url }));
     } catch (err) {
       console.error("❌ خطا در آپلود تصویر:", err);
@@ -176,11 +163,7 @@ const handleSubmit = async (e) => {
   };
 
   if (isLoading || !editor) {
-    return (
-      <div className="p-6 text-center text-gray-400">
-        در حال بارگذاری مقاله...
-      </div>
-    );
+    return <div className="p-6 text-center text-gray-400">در حال بارگذاری مقاله...</div>;
   }
 
   return (
@@ -191,11 +174,7 @@ const handleSubmit = async (e) => {
       >
         {/* بخش اصلی */}
         <div className="lg:col-span-2 space-y-4">
-          <TitleInput
-            form={form}
-            setForm={setForm}
-            generateSlug={generateSlug}
-          />
+          <TitleInput form={form} setForm={setForm} generateSlug={generateSlug} />
           <SlugInput form={form} setForm={setForm} />
           <ExcerptInput form={form} setForm={setForm} />
           <EditorSection
@@ -206,35 +185,23 @@ const handleSubmit = async (e) => {
           />
         </div>
 
-        {/* ساید */}
+        {/* سایدبار */}
         <div className="space-y-4">
-          <PublishSection
-            form={form}
-            setForm={setForm}
-            onSave={handleSubmit}
-            isSubmitting={isSubmitting}
-          />
-          <CategorySelect
-            categories={categories}
-            selectedCategoryId={form.categoryId}
-            onChange={(id) => setForm((prev) => ({ ...prev, categoryId: id }))}
-          />
+          <PublishSection form={form} setForm={setForm} onSave={handleSubmit} />
+          
+          <BlogCategoryBox blog={form} setBlog={setForm} categories={categories} />
+{/* 
           <TagsSection
             tags={allTags}
             selectedTags={form.tags}
-            setSelectedTags={(tags) =>
-              setForm((prev) => ({ ...prev, tags }))
-            }
-          />
+            setSelectedTags={(tags) => setForm((prev) => ({ ...prev, tags }))}
+          /> */}
+
           <CoverImageUpload
             coverImage={form.coverImage}
-            setCoverImage={(url) =>
-              setForm((prev) => ({ ...prev, coverImage: url }))
-            }
+            setCoverImage={(url) => setForm((prev) => ({ ...prev, coverImage: url }))}
             coverImageInputRef={coverImageInputRef}
-            handleCoverImageUploadClick={() =>
-              coverImageInputRef.current?.click()
-            }
+            handleCoverImageUploadClick={() => coverImageInputRef.current?.click()}
             handleCoverImageFileChange={handleCoverImageFileChange}
           />
         </div>

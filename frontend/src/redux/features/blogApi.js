@@ -115,7 +115,7 @@ export const blogApi = apiSlice.injectEndpoints({
 
     // --------- جدید: دسته‌بندی‌ها ---------
     getAllCategories: builder.query({
-      query: () => `${API_URL}/blog-categories`,
+      query: () => `${API_URL}/blog-category/show`,
       providesTags: ['BlogCategories'],
     }),
 

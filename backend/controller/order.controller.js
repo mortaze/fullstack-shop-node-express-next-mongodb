@@ -2,87 +2,136 @@ const { secret } = require("../config/secret");
 const stripe = require("stripe")(secret.stripe_key);
 const Order = require("../model/Order");
 
-// create-payment-intent
-exports.paymentIntent = async (req, res, next) => {
+// ------------------------------
+// 🎧 ایجاد Intent پرداخت
+// ------------------------------
+exports.createPaymentIntent = async (req, res, next) => {
   try {
-    const product = req.body;
-    const price = Number(product.price);
-    const amount = price * 100;
-    // Create a PaymentIntent with the order amount and currency
+    const price = Number(req.body?.price || 0);
     const paymentIntent = await stripe.paymentIntents.create({
       currency: "usd",
-      amount: amount,
+      amount: price * 100,
       payment_method_types: ["card"],
     });
-    res.send({
+
+    res.json({
+      success: true,
       clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
-    console.log(error);
-    next(error)
+    next(error);
   }
 };
-// addOrder
+
+// ------------------------------
+// 🧾 ایجاد سفارش
+// ------------------------------
 exports.addOrder = async (req, res, next) => {
   try {
-    const orderItems = await Order.create(req.body);
+    const order = await Order.create(req.body);
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       message: "Order added successfully",
-      order: orderItems,
+      data: order,
     });
-  }
-  catch (error) {
-    console.log(error);
-    next(error)
-  }
-};
-// get Orders
-exports.getOrders = async (req, res, next) => {
-  try {
-    const orderItems = await Order.find({}).populate('user');
-    res.status(200).json({
-      success: true,
-      data: orderItems,
-    });
-  }
-  catch (error) {
-    console.log(error);
-    next(error)
-  }
-};
-// get Orders
-exports.getSingleOrder = async (req, res, next) => {
-  try {
-    const orderItem = await Order.findById(req.params.id).populate('user');
-    res.status(200).json(orderItem);
-  }
-  catch (error) {
-    console.log(error);
-    next(error)
+  } catch (error) {
+    next(error);
   }
 };
 
-exports.updateOrderStatus = async (req, res) => {
-  const newStatus = req.body.status;
+// ------------------------------
+// 📌 دریافت همه سفارش‌ها برای داشبورد
+// ------------------------------
+exports.getOrders = async (req, res, next) => {
   try {
-    await Order.updateOne(
-      {
-        _id: req.params.id,
-      },
-      {
-        $set: {
-          status: newStatus,
-        },
-      }, { new: true })
-    res.status(200).json({
+    const orders = await Order.find({})
+      .populate("user", "name email");
+
+    res.json({
       success: true,
-      message: 'Status updated successfully',
+      data: orders,
     });
+  } catch (error) {
+    next(error);
   }
-  catch (error) {
-    console.log(error);
-    next(error)
+};
+
+// ------------------------------
+// 📌 دریافت سفارش تکی
+// ------------------------------
+exports.getSingleOrder = async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate("user", "name email");
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ------------------------------
+// ✏️ ویرایش کامل سفارش (Dashboard)
+// ------------------------------
+exports.updateOrder = async (req, res, next) => {
+  try {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Order updated successfully",
+      data: updatedOrder,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ------------------------------
+// 🔄 فقط تغییر وضعیت سفارش
+// ------------------------------
+exports.updateOrderStatus = async (req, res, next) => {
+  try {
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Status updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ------------------------------
+// ❌ حذف سفارش
+// ------------------------------
+exports.deleteOrder = async (req, res, next) => {
+  try {
+    await Order.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: "Order deleted successfully",
+    });
+  } catch (error) {
+    next(error);
   }
 };

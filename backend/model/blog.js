@@ -60,17 +60,16 @@ const BlogSchema = new mongoose.Schema(
       },
     },
 
-    // Relationships
-    author: {
-      type: ObjectId,
-      ref: "User",
-      required: true,
+    
+    author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+   
+    
+    category: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "BlogCategory", 
+      required: true 
     },
-    category: {
-      type: ObjectId,
-      ref: "Category",
-      required: false,
-    },
+
     tags: [String],
     relatedProducts: [{ type: ObjectId, ref: "Products" }],
     relatedPosts: [{ type: ObjectId, ref: "Blog" }],

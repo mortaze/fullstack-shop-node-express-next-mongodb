@@ -1,24 +1,39 @@
 const express = require("express");
 const {
-  paymentIntent,
+  createPaymentIntent,
   addOrder,
   getOrders,
-  updateOrderStatus,
   getSingleOrder,
+  updateOrderStatus,
+  deleteOrder,
+  updateOrder,
 } = require("../controller/order.controller");
 
-// router
 const router = express.Router();
 
-// get orders
-router.get("/orders", getOrders);
-// single order
+// ------------------------
+// 🧾 مدیریت سفارش
+// ------------------------
+
+// دریافت همه سفارش‌ها
+router.get("/", getOrders);
+
+// دریافت سفارش تکی
 router.get("/:id", getSingleOrder);
-// add a create payment intent
-router.post("/create-payment-intent", paymentIntent);
-// save Order
-router.post("/saveOrder", addOrder);
-// update status
-router.patch("/update-status/:id", updateOrderStatus);
+
+// ایجاد سفارش (کاربر)
+router.post("/", addOrder);
+
+// ویرایش کامل سفارش (برای داشبورد)
+router.put("/:id", updateOrder);
+
+// تغییر وضعیت سفارش (Pending → Completed...)
+router.patch("/:id/status", updateOrderStatus);
+
+// حذف سفارش (داشبورد)
+router.delete("/:id", deleteOrder);
+
+// پرداخت Stripe
+router.post("/create-payment-intent", createPaymentIntent);
 
 module.exports = router;

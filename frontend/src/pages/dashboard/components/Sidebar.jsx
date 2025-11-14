@@ -65,6 +65,7 @@ const menuItems = [
       { label: "همه مقاله‌ها", icon: <FaThList />, href: "/dashboard/blog" },
       { label: "مقاله جدید", icon: <FaPlusCircle />, href: "/dashboard/blog/create" },
       { label: "دسته‌ها", icon: <TbCategoryFilled />, href: "/dashboard/blog/categories" },
+      { label: "دسته بندی جدید", icon: <TbCategoryFilled />, href: "/dashboard/blog/categories/create" },
       { label: "برچسب‌ها", icon: <FaTags />, href: "/dashboard/blog/tags" },
     ],
   },
